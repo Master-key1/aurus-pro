@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aurus Pro | Public Cloud Registry v10.5</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="https://apis.google.com/js/api.js" async defer></script>
+    
+    <style>
+        :root {
+            --brand: #6366f1; --navy: #0f172a; --bg: #f1f5f9; --border: #e2e8f0;
+            --critical-bg: #fee2e2; --critical-text: #991b1b;
+            --amber-bg: #fef3c7; --amber-text: #92400e;
+            --green-bg: #dcfce7; --green-text: #166534;
+        }
+
+        * { box-sizing: border-box; transition: all 0.2s ease; }
+        body { margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); display: flex; color: #1e293b; }
+
+        /* Navigation Sidebar */
+        nav { width: 260px; background: var(--navy); padding: 40px 20px; position: fixed; height: 100vh; z-index: 100; color: white; }
+        nav h1 { font-size: 22px; margin-bottom: 40px; font-weight: 800; letter-spacing: -1px; }
+        nav h1 span { color: var(--brand); }
+        nav button { width: 100%; text-align: left; border: none; padding: 14px; border-radius: 12px; background: transparent; color: #94a3b8; font-weight: 600; cursor: pointer; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+        nav button.active { background: var(--brand); color: white; }
+
+        .workspace { margin-left: 260px; flex: 1; padding: 40px; width: calc(100% - 260px); }
+        
+        /* SEMANTIC STAINING LOGIC */
+        .row-resolved { background-color: var(--green-bg) !important; color: var(--green-text); }
+        .row-progress { background-color: var(--amber-bg) !important; color: var(--amber-text); }
+        .row-critical { background-color: var(--critical-bg) !important; color: var(--critical-text); font-weight: 700; }
+
+        /* Cards & UI */
+        .glass-card { background: white; border-radius: 24px; padding: 35px; border: 1px solid var(--border); box-shadow: 0 20px 25px -5px rgba(0,0,0,0.05); }
+        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        label { font-size: 11px; font-weight: 800; color: #475569; text-transform: uppercase; display: block; margin-bottom: 8px; }
+        input, select, textarea { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: #f8fafc; font-size: 14px; font-family: inherit; }
+
+        /* Table */
+        .table-container { background: white; border-radius: 20px; border: 1px solid var(--border); overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; min-width: 1200px; }
+        th { background: #f8fafc; padding: 18px 15px; text-align: left; color: #64748b; font-weight: 700; border-bottom: 2px solid var(--border); }
+        td { padding: 12px 15px; border-bottom: 1px solid rgba(0,0,0,0.05); }
+
+        .btn-main { background: var(--brand); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 800; cursor: pointer; width: 100%; }
+        .btn-cloud { background: #4285F4; color: white; margin-top: 20px; border: none; padding: 12px; border-radius: 10px; cursor: pointer; width: 100%; font-weight: 700; font-size: 12px; }
+        .sync-info { font-size: 10px; color: #94a3b8; text-align: center; display: block; margin-top: 8px; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <h1>AURUS <span>PRO</span></h1>
+    <button id="n1" class="active" onclick="view('entryPage', this)">➕ New Incident</button>
+    <button id="n2" onclick="view('historyPage', this)">📋 Master Registry</button>
+    
+    <div style="margin-top:50px; padding-top: 20px; border-top: 1px solid #334155;">
+        <label style="color:#64748b; margin-left: 10px;">CLOUD UTILITY</label>
+        <button onclick="handleAuthClick()" class="btn-cloud">☁️ Sync to Google Drive</button>
+        <button onclick="restoreFromDrive()" style="font-size:11px; opacity:0.6; background:transparent; color:white; border:1px solid #334155; margin-top:8px; padding:8px; border-radius:8px; cursor:pointer;">📂 Restore from Backup</button>
+        <span id="lastSynced" class="sync-info">Not synced</span>
+    </div>
+</nav>
+
+<div class="workspace">
+    <div id="entryPage">
+        <h2 style="margin-bottom:25px;">Incident Registration</h2>
+        <div class="glass-card">
+            <input type="hidden" id="editId">
+            <div class="form-grid">
+                <div style="grid-column: span 2;"><label>Email Subject</label><input type="text" id="emailSubject"></div>
+                <div><label>Category</label><input type="text" id="category"></div>
+                <div style="grid-column: span 3;"><label>Technical Summary</label><textarea id="description" rows="3"></textarea></div>
+                <div><label>Client Name</label><input type="text" id="clientName"></div>
+                <div><label>Severity</label><select id="severity"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></div>
+                <div><label>Status</label><select id="status"><option>Open</option><option>In Progress</option><option>Resolved</option></select></div>
+                <div style="grid-column: span 3;"><button class="btn-main" onclick="save()">🚀 Sync Locally & Update Registry</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="historyPage" class="hidden">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>Master Registry</h2>
+            <button class="btn-main" onclick="exportExcel()" style="width:auto; background:#166534; padding:10px 20px;">📗 Export Excel</button>
+        </div>
+        <div class="table-container">
+            <table id="mainTable">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Category</th>
+                        <th>Status</th>
+                        <th>Severity</th>
+                        <th>Client</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    /** GOOGLE CONFIGURATION **/
+    const CLIENT_ID = 'YOUR_CLIENT_ID_HERE.apps.googleusercontent.com';
+    const API_KEY = 'YOUR_API_KEY_HERE';
+    const CLIENT_SECRET = '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'; 
+    const DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
+    const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+    let db;
+    let tokenClient;
+    const fields = ["emailSubject", "description", "category", "clientName", "severity", "status"];
+
+    // DB Setup
+    const req = indexedDB.open("AurusCloudDB", 3);
+    req.onupgradeneeded = e => e.target.result.createObjectStore("logs", { keyPath: "id" });
+    req.onsuccess = e => { db = e.target.result; renderHistory(); };
+
+    // Initialize Google API
+    window.onload = function() {
+        gapi.load('client', async () => {
+            await gapi.client.init({apiKey: API_KEY, discoveryDocs: DISCOVERY_DOCS});
+        });
+        tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: CLIENT_ID, scope: SCOPES, callback: ''
+        });
+    };
+
+    // Google Drive Sync Logic
+    async function handleAuthClick() {
+        tokenClient.callback = async (resp) => { if (resp.access_token) await uploadToDrive(); };
+        tokenClient.requestAccessToken({prompt: 'consent'});
+    }
+
+    async function uploadToDrive() {
+        const tx = db.transaction("logs", "readonly");
+        tx.objectStore("logs").getAll().onsuccess = async (e) => {
+            const content = JSON.stringify(e.target.result);
+            const metadata = { 'name': 'Aurus_Master_Registry.json', 'mimeType': 'application/json' };
+            const file = new Blob([content], {type: 'application/json'});
+            const form = new FormData();
+            form.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
+            form.append('file', file);
+
+            await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+                method: 'POST',
+                headers: new Headers({'Authorization': 'Bearer ' + gapi.client.getToken().access_token}),
+                body: form
+            });
+            document.getElementById('lastSynced').innerText = "Last Synced: " + new Date().toLocaleTimeString();
+            alert("✅ Cloud Sync Complete!");
+        };
+    }
+
+    async function restoreFromDrive() {
+        tokenClient.callback = async (resp) => {
+            if (resp.access_token) {
+                const list = await fetch('https://www.googleapis.com/drive/v3/files?q=name="Aurus_Master_Registry.json"', {
+                    headers: {'Authorization': 'Bearer ' + resp.access_token}
+                }).then(r => r.json());
+                
+                if(list.files.length > 0) {
+                    const data = await fetch(`https://www.googleapis.com/drive/v3/files/${list.files[0].id}?alt=media`, {
+                        headers: {'Authorization': 'Bearer ' + resp.access_token}
+                    }).then(r => r.json());
+                    
+                    const tx = db.transaction("logs", "readwrite");
+                    data.forEach(item => tx.objectStore("logs").put(item));
+                    alert("✅ Data Restored from Google Drive!");
+                    renderHistory();
+                }
+            }
+        };
+        tokenClient.requestAccessToken();
+    }
+
+    // App Logic
+    function view(id, btn) {
+        document.getElementById('entryPage').classList.toggle('hidden', id !== 'entryPage');
+        document.getElementById('historyPage').classList.toggle('hidden', id !== 'historyPage');
+        document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+        if(id === 'historyPage') renderHistory();
+    }
+
+    function save() {
+        const tx = db.transaction("logs", "readwrite");
+        const data = { id: document.getElementById('editId').value || "ID-" + Date.now() };
+        fields.forEach(f => data[f] = document.getElementById(f).value);
+        tx.objectStore("logs").put(data).onsuccess = () => {
+            alert("Stored Locally!");
+            fields.forEach(f => { if(document.getElementById(f).tagName !== "SELECT") document.getElementById(f).value = ""; });
+            view('historyPage', document.getElementById('n2'));
+        };
+    }
+
+    function renderHistory() {
+        const tbody = document.getElementById("logTableBody");
+        tbody.innerHTML = "";
+        db.transaction("logs", "readonly").objectStore("logs").openCursor(null, 'prev').onsuccess = e => {
+            const c = e.target.result;
+            if(c) {
+                const v = c.value;
+                const tr = document.createElement("tr");
+                
+                // STAINING LOGIC
+                if(v.status === 'Resolved') tr.className = "row-resolved";
+                else if(v.status === 'In Progress') tr.className = "row-progress";
+                else if(v.severity === 'Critical') tr.className = "row-critical";
+
+                tr.innerHTML = `<td><b>${v.emailSubject}</b></td><td>${v.category}</td><td>${v.status}</td><td>${v.severity}</td><td>${v.clientName}</td>
+                                <td><button onclick="deleteRow('${v.id}')" style="cursor:pointer; border:none; background:transparent;">🗑️</button></td>`;
+                tbody.appendChild(tr);
+                c.continue();
+            }
+        };
+    }
+
+    function deleteRow(id) {
+        if(confirm("Delete entry?")) db.transaction("logs", "readwrite").objectStore("logs").delete(id).onsuccess = () => renderHistory();
+    }
+
+    function exportExcel() {
+        const table = document.getElementById("mainTable").cloneNode(true);
+        const template = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+            <head><style>
+                .row-resolved { background-color: #dcfce7; } .row-progress { background-color: #fef3c7; } .row-critical { background-color: #fee2e2; }
+                td, th { border: 1px solid #ccc; font-family: sans-serif; padding: 5px; }
+            </style></head><body>${table.outerHTML}</body></html>`;
+        window.open('data:application/vnd.ms-excel,' + encodeURIComponent(template));
+    }
+</script>
+</body>
+</html>
