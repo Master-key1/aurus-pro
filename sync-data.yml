@@ -1,0 +1,25 @@
+name: Sync Data to JSON
+on:
+  repository_dispatch:
+    types: [sync_registry]
+
+jobs:
+  update-file:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Update data.json
+        run: |
+          # Create or update data.json with the payload
+          echo '${{ github.event.client_payload.data }}' > data.json
+          
+          # Configure Git
+          git config --global user.name "Aurus Bot"
+          git config --global user.email "bot@aurus.pro"
+          
+          # Commit and Push
+          git add data.json
+          git commit -m "Registry Sync: ${{ github.event.client_payload.timestamp }}"
+          git push
